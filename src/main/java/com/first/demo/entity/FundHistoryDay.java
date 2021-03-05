@@ -103,4 +103,19 @@ public class FundHistoryDay {
     public void setTimestamp(long timestamp) {
         this.timestamp = timestamp;
     }
+
+    @Override
+    public String toString() {
+        return "FundHistoryDay{" +
+                "id=" + id +
+                ", fundcode='" + fundcode + '\'' +
+                ", name='" + name + '\'' +
+                ", jzrq='" + jzrq + '\'' +
+                ", dwjz='" + dwjz + '\'' +
+                ", gsz='" + gsz + '\'' +
+                ", gszzl='" + gszzl + '\'' +
+                ", gztime='" + gztime + '\'' +
+                ", timestamp=" + timestamp +
+                '}';
+    }
 }

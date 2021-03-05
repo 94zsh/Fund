@@ -166,6 +166,7 @@ public class FundServiceImpl implements FundService {
                             fundHistoryDay.setId(localData.getId());
                         }
                         fundHistoryDayRepository.save(fundHistoryDay);
+                        logger.info("fundHistoryDay: " + fundHistoryDay.toString());
                     }
                 }catch (Exception e){
                     logger.warning("getDetail error : " + e);

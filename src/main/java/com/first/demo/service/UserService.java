@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface UserService {
     public List<User> getUserInfo();
+    public User Login(String account,String psw);
 }

@@ -7,20 +7,17 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.RestController;
 
-import javax.annotation.Resource;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
 
 @Service
 public class UserServiceImpl implements UserService {
+    private static final Logger logger = Logger.getLogger(String.valueOf(FundServiceImpl.class));
 //    @Autowired
 //    private JdbcTemplate jdbcTemplate;//Spring的JdbcTemplate是自动配置的，可直接使用
 
@@ -29,7 +26,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<User> getUserInfo() {
-
+        logger.info("getUserInfo : " );
         Log log = LogFactory.getLog(UserServiceImpl.class);
         List<User> userList = new ArrayList<>();
         User user = new User();
@@ -59,6 +56,14 @@ public class UserServiceImpl implements UserService {
         }else{
             return userList;
         }
+    }
+
+    @Override
+    public User Login(String account, String psw) {
+        logger.info("login request account : " + account + " psw : " + psw);
+        User user = userRepository.findUserByAccountAndPsw(account,psw);
+        logger.info("login result: " + user);
+        return user;
     }
 
     @Autowired
