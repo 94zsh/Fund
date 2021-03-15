@@ -55,6 +55,7 @@ public class FundServiceImpl implements FundService {
         String strbody = restTemplate.exchange(uri, HttpMethod.GET, entity,String.class).getBody();
         logger.info("getData uri:" + uri);
         logger.info("getData:" + strbody);
+
         return strbody;
     }
 
@@ -86,7 +87,7 @@ public class FundServiceImpl implements FundService {
             JSONArray jsonArray = new JSONArray(array);
             logger.info("jsonArray size :" + jsonArray.length());
             long timeStart = System.currentTimeMillis();
-            logger.info("time save start :" + timeStart);
+            logger.info("time getFundList start :" + timeStart);
             for (int i = 0; i < jsonArray.length(); i++) {
                 String item = jsonArray.get(i).toString();
                 String newStr = item.replace("[","").replace("]","").replace("\"","");
@@ -114,7 +115,7 @@ public class FundServiceImpl implements FundService {
 //                logger.info("fund:" + fund.toString());
                 fundRepository.save(fund);
             }
-            logger.info("getFundList time :" + (System.currentTimeMillis() - timeStart));
+            logger.info("time getFundList end:" + (System.currentTimeMillis() - timeStart));
 
         } catch (JSONException e) {
             e.printStackTrace();
@@ -132,7 +133,7 @@ public class FundServiceImpl implements FundService {
         long timeStart = System.currentTimeMillis();
 
         if(funds.size() > 0){
-            logger.info("getFundDetail start size : " + funds.size());
+            logger.info("time getFundDetail start size : " + funds.size());
 
             for (int i = 0; i < funds.size(); i++) {
                 Fund fund = funds.get(i);
@@ -169,12 +170,12 @@ public class FundServiceImpl implements FundService {
                         logger.info("fundHistoryDay: " + fundHistoryDay.toString());
                     }
                 }catch (Exception e){
-                    logger.warning("getDetail error : " + e);
+                    logger.warning("time getDetail error : " + e);
                 }
 
             }
         }
-        logger.info("getFundDetail time :" + (System.currentTimeMillis() - timeStart));
+        logger.info("time getFundDetail end :" + (System.currentTimeMillis() - timeStart));
 
         return "strbody";
     }

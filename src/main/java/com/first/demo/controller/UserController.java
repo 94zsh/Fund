@@ -38,7 +38,7 @@ public class UserController {
             response.setStateCode(Constant.RESPONSE_CODE_FAILED);
             response.setMsg("帐号或密码错误");
         }else{
-            response.setMsg("成功");
+            response.setMsg("登陆成功");
             response.setStateCode(Constant.RESPONSE_CODE_SUCCESS);
             response.setData(new Gson().toJson(user));
         }
