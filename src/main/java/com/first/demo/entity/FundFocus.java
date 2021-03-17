@@ -3,23 +3,28 @@ package com.first.demo.entity;
 import javax.persistence.*;
 
 @Entity
-@Table(name = "f_history_day")
-public class FundHistoryDay {
+@Table(name = "f_focus")
+public class FundFocus {
     @Id
     @GeneratedValue(strategy= GenerationType.IDENTITY)
     private Long id;
-    String fundcode;//代码
-    String name;//名字
-    String jzrq;//净值日期
-    String dwjz;//当日净值
-    String gsz;//估算净值
-    String gszzl;//估算涨跌百分比
-    String gztime;//估值日期
-    long timestamp;//更新时间
+    String account;
+    String code;
+    String name;
+    String jzrq;
+    String dwjz;
+    String gsz;
+    String gszzl;
+    String gztime;
+    long timestamp;
 
-    public FundHistoryDay(Long id, String fundcode, String name, String jzrq, String dwjz, String gsz, String gszzl, String gztime, long timestamp) {
+    public FundFocus() {
+    }
+
+    public FundFocus(Long id, String account, String code, String name, String jzrq, String dwjz, String gsz, String gszzl, String gztime, long timestamp) {
         this.id = id;
-        this.fundcode = fundcode;
+        this.account = account;
+        this.code = code;
         this.name = name;
         this.jzrq = jzrq;
         this.dwjz = dwjz;
@@ -28,8 +33,16 @@ public class FundHistoryDay {
         this.gztime = gztime;
         this.timestamp = timestamp;
     }
-
-    public FundHistoryDay() {
+    public FundFocus(String account, String code, String name, String jzrq, String dwjz, String gsz, String gszzl, String gztime, long timestamp) {
+        this.account = account;
+        this.code = code;
+        this.name = name;
+        this.jzrq = jzrq;
+        this.dwjz = dwjz;
+        this.gsz = gsz;
+        this.gszzl = gszzl;
+        this.gztime = gztime;
+        this.timestamp = timestamp;
     }
 
     public Long getId() {
@@ -40,12 +53,20 @@ public class FundHistoryDay {
         this.id = id;
     }
 
-    public String getFundcode() {
-        return fundcode;
+    public String getAccount() {
+        return account;
     }
 
-    public void setFundcode(String fundcode) {
-        this.fundcode = fundcode;
+    public void setAccount(String account) {
+        this.account = account;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public void setCode(String code) {
+        this.code = code;
     }
 
     public String getName() {
@@ -106,9 +127,10 @@ public class FundHistoryDay {
 
     @Override
     public String toString() {
-        return "FundHistoryDay{" +
+        return "FundFocus{" +
                 "id=" + id +
-                ", fundcode='" + fundcode + '\'' +
+                ", account='" + account + '\'' +
+                ", code='" + code + '\'' +
                 ", name='" + name + '\'' +
                 ", jzrq='" + jzrq + '\'' +
                 ", dwjz='" + dwjz + '\'' +

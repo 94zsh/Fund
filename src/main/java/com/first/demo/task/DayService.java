@@ -55,19 +55,29 @@ public class DayService {
     //每周星期天凌晨1点实行一次：0 0 1 ? * L
     @Scheduled(cron = "* 0 0 * * ?")
     public void downList(){
+        //每天0点更新一次全部列表
         SimpleDateFormat formatter = new SimpleDateFormat ("yyyy-MM-dd HH:mm:ss");
         logger.info("当前定时任务时间 downList ：" + formatter.format(new Date(System.currentTimeMillis())));
         fundService.getFundList();
     }
-    @Scheduled(cron = "* 1 12,15 * * ?")
+    @Scheduled(cron = "* 5 12,15,18 * * ?")
     public void downDayData(){
+        //每天12点5分，15点5分 18:5更新一次全部最新历史
         SimpleDateFormat formatter = new SimpleDateFormat ("yyyy-MM-dd HH:mm:ss");
         logger.info("当前定时任务时间 downDayData ：" + formatter.format(new Date(System.currentTimeMillis())));
         fundService.getFundDetail();
     }
-    @Scheduled(cron = "* 0 * * * ?")
+    @Scheduled(cron = "0 0 * * * ?")
     public void downCheck(){
+        //测试用 每小时打印一次
         SimpleDateFormat formatter = new SimpleDateFormat ("yyyy-MM-dd HH:mm:ss");
         logger.info("当前定时任务时间 downCheck ：" + formatter.format(new Date(System.currentTimeMillis())));
+    }
+    @Scheduled(cron = "0 */5 9-15 * * ?")
+    public void updateFocusInfo(){
+        //每天9点到16点每隔5分钟更新一次关注列表
+        SimpleDateFormat formatter = new SimpleDateFormat ("yyyy-MM-dd HH:mm:ss");
+        logger.info("当前定时任务 updateFocusInfo 时间 ：" + formatter.format(new Date(System.currentTimeMillis())));
+        fundService.updateFocusInfo("18316021694");
     }
 }

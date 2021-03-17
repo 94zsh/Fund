@@ -1,9 +1,13 @@
 package com.first.demo.service.impl;
 
+import com.first.demo.dao.FundFocusRepository;
 import com.first.demo.dao.FundHistoryDayRepository;
+import com.first.demo.dao.FundInvalidRepository;
 import com.first.demo.dao.FundRepository;
 import com.first.demo.entity.Fund;
+import com.first.demo.entity.FundFocus;
 import com.first.demo.entity.FundHistoryDay;
+import com.first.demo.entity.FundInvalid;
 import com.first.demo.service.FundService;
 import com.google.gson.Gson;
 import org.json.JSONArray;
@@ -27,6 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
@@ -38,6 +43,25 @@ public class FundServiceImpl implements FundService {
     private FundRepository fundRepository;
     @Autowired
     private FundHistoryDayRepository fundHistoryDayRepository;
+    @Autowired
+    private FundFocusRepository fundFocusRepository;
+    @Autowired
+    private FundInvalidRepository fundInvalidRepository;
+
+    private final RestTemplate restTemplate;
+    private final HttpEntity<String> entity;
+    public FundServiceImpl() {
+        restTemplate = new RestTemplate(
+                new HttpComponentsClientHttpRequestFactory()); // 使用HttpClient，支持GZIP
+
+        restTemplate.getMessageConverters().set(1,
+                new StringHttpMessageConverter(StandardCharsets.UTF_8)); // 支持中文编码
+        HttpHeaders headers = new HttpHeaders();
+        MediaType type = MediaType.parseMediaType("application/json; charset=UTF-8");
+        headers.setContentType(type);
+//        headers.setContentType(MediaType.APPLICATION_JSON_UTF8);
+        entity = new HttpEntity<>(headers);
+    }
     @Override
     public String getData() {
         RestTemplate restTemplate = new RestTemplate(
@@ -83,12 +107,13 @@ public class FundServiceImpl implements FundService {
         if (strbody != null) {
             array = strbody.substring(9);
         }
+        long timeStart = System.currentTimeMillis();
         try {
             JSONArray jsonArray = new JSONArray(array);
             logger.info("jsonArray size :" + jsonArray.length());
-            long timeStart = System.currentTimeMillis();
             logger.info("time getFundList start :" + timeStart);
             for (int i = 0; i < jsonArray.length(); i++) {
+                System.out.println("getFundList current : " + i + " , total :" + jsonArray.length() + " , process : " + ((float) i /jsonArray.length()) * 100 + " %");
                 String item = jsonArray.get(i).toString();
                 String newStr = item.replace("[","").replace("]","").replace("\"","");
                 String[] value = newStr.split(",");
@@ -113,6 +138,11 @@ public class FundServiceImpl implements FundService {
                     }
                 }
 //                logger.info("fund:" + fund.toString());
+                //查询本地是否有同数据
+                Fund localData = fundRepository.findByCode(fund.getCode());
+                if(localData != null){
+                    fund.setId(localData.getId());
+                }
                 fundRepository.save(fund);
             }
             logger.info("time getFundList end:" + (System.currentTimeMillis() - timeStart));
@@ -120,64 +150,140 @@ public class FundServiceImpl implements FundService {
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        return strbody;
+        return "耗时：" + (System.currentTimeMillis() - timeStart) + "ms";
     }
 
     @Override
     public String getFundDetail() {
-        List<Fund> funds = fundRepository.findAll();
-        RestTemplate restTemplate = new RestTemplate(
-                new HttpComponentsClientHttpRequestFactory()); // 使用HttpClient，支持GZIP
-        restTemplate.getMessageConverters().set(1,
-                new StringHttpMessageConverter(StandardCharsets.UTF_8)); // 支持中文编码
         long timeStart = System.currentTimeMillis();
+        try {
+            List<Fund> funds = fundRepository.findAll();
+            RestTemplate restTemplate = new RestTemplate(
+                    new HttpComponentsClientHttpRequestFactory()); // 使用HttpClient，支持GZIP
+            restTemplate.getMessageConverters().set(1,
+                    new StringHttpMessageConverter(StandardCharsets.UTF_8)); // 支持中文编码
+            if(funds.size() > 0){
+                logger.info("time getFundDetail start size : " + funds.size());
 
-        if(funds.size() > 0){
-            logger.info("time getFundDetail start size : " + funds.size());
+                List<FundInvalid> fundInvalids = fundInvalidRepository.findAll();
+                for (int i = 0; i < /*100*/funds.size(); i++) {
+                    System.out.println("getFundDetail current : " + i + " , total :" + funds.size() + " , process : " + ((float) i /funds.size()) * 100 + " %");
+                    Fund fund = funds.get(i);
+                    String fundCode = fund.getCode();
 
-            for (int i = 0; i < funds.size(); i++) {
-                Fund fund = funds.get(i);
-                String fundCode = fund.getCode();
-                String uri = "http://fundgz.1234567.com.cn/js/" + fundCode + ".js";
-                HttpHeaders headers = new HttpHeaders();
-                MediaType type = MediaType.parseMediaType("application/json; charset=UTF-8");
-                headers.setContentType(type);
+                    boolean isViald = true;
+                    for (FundInvalid invalid : fundInvalids) {
+                        if (invalid.getName() != null && invalid.getName().equalsIgnoreCase(fund.getCnName())) {
+                            isViald = false;
+                            break;
+                        }
+                    }
+                    if(!isViald){
+                        //历史无效的请求 过滤掉
+                        continue;
+                    }
+                    String uri = "http://fundgz.1234567.com.cn/js/" + fundCode + ".js";
+                    HttpHeaders headers = new HttpHeaders();
+                    MediaType type = MediaType.parseMediaType("application/json; charset=UTF-8");
+                    headers.setContentType(type);
 //        headers.setContentType(MediaType.APPLICATION_JSON_UTF8);
-                HttpEntity<String> entity = new HttpEntity<>(headers);
-                try {
-                    String strbody = restTemplate.exchange(uri, HttpMethod.GET, entity,String.class).getBody();
+                    HttpEntity<String> entity = new HttpEntity<>(headers);
+                    try {
+                        String strbody = restTemplate.exchange(uri, HttpMethod.GET, entity,String.class).getBody();
 
-                    logger.info("getData uri: " + uri);
+//                        logger.info("getData uri: " + uri);
 //                    logger.info("getData: " + strbody);
 
-                    if(strbody != null && strbody.length() > 8 && strbody.length() - 2 > 8){
-                        String jsonStr = strbody.substring(8,strbody.length() - 2);
-//                        logger.info("jsonStr: " + jsonStr);
-                        Gson gson = new Gson();
-                        FundHistoryDay fundHistoryDay = gson.fromJson(jsonStr,FundHistoryDay.class);
-                        try {
-                            long timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm").parse(fundHistoryDay.getGztime()).getTime();
-                            fundHistoryDay.setTimestamp(timeStamp/1000);
-                        } catch (ParseException e) {
-                            e.printStackTrace();
+                        if(strbody != null && strbody.length() > 8 && strbody.length() - 2 > 8){
+                            String jsonStr = strbody.substring(8,strbody.length() - 2);
+//                            logger.info("jsonStr: " + jsonStr);
+                            Gson gson = new Gson();
+                            FundHistoryDay fundHistoryDay = gson.fromJson(jsonStr,FundHistoryDay.class);
+                            try {
+                                long timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm").parse(fundHistoryDay.getGztime()).getTime();
+                                fundHistoryDay.setTimestamp(timeStamp/1000);
+                            } catch (ParseException e) {
+                                e.printStackTrace();
+                            }
+                            //查询本地是否有同一天的数据
+//                            FundHistoryDay localData = findSearch(fundHistoryDay.getFundcode(),fundHistoryDay.getJzrq());
+                            FundHistoryDay localData = fundHistoryDayRepository.findByFundcodeAndJzrq(fundHistoryDay.getFundcode(),fundHistoryDay.getJzrq());
+                            if(localData != null){
+                                fundHistoryDay.setId(localData.getId());
+                            }
+                            fundHistoryDayRepository.save(fundHistoryDay);
+//                            logger.info("fundHistoryDay: " + fundHistoryDay.toString());
                         }
-                        //查询本地是否有同一天的数据
-                        FundHistoryDay localData = findSearch(fundHistoryDay.getFundcode(),fundHistoryDay.getJzrq());
-                        if(localData != null){
-                            fundHistoryDay.setId(localData.getId());
-                        }
-                        fundHistoryDayRepository.save(fundHistoryDay);
-                        logger.info("fundHistoryDay: " + fundHistoryDay.toString());
+                    }catch (Exception e){
+                        System.out.println("error url : " + uri);
+                        logger.warning("time getDetail error : " + e);
+                        FundInvalid fundInvalid = new FundInvalid(fund.getCode(),fund.getCnName(), new SimpleDateFormat("yyyy-MM-dd HH:mm").format(new Date()));
+                        fundInvalidRepository.save(fundInvalid);
+//                    break;
                     }
-                }catch (Exception e){
-                    logger.warning("time getDetail error : " + e);
+
                 }
-
             }
+            logger.info("time getFundDetail end :" + (System.currentTimeMillis() - timeStart));
+        }catch (Exception e){
+            e.printStackTrace();
+            System.out.println("getFundDetail Exception e : " + e.toString());
+            logger.info("getFundDetail Exception e :" + e.getCause());
+            logger.info("getFundDetail Exception e.getLocalizedMessage :" + e.getLocalizedMessage());
         }
-        logger.info("time getFundDetail end :" + (System.currentTimeMillis() - timeStart));
 
-        return "strbody";
+
+        return "耗时：" + (System.currentTimeMillis() - timeStart) + "ms";
+    }
+
+    @Override
+    public String updateFocusInfo(String account) {
+        List<FundFocus> fundFocus = fundFocusRepository.findByAccount(account);
+        long timeStart = System.currentTimeMillis();
+        System.out.println(account + " focus size  : " + fundFocus.size());
+        for (int i = 0; i < fundFocus.size(); i++) {
+            String fundCode = fundFocus.get(i).getCode();
+            String uri = "http://fundgz.1234567.com.cn/js/" + fundCode + ".js";
+            try {
+                String strbody = restTemplate.exchange(uri, HttpMethod.GET, entity,String.class).getBody();
+                logger.info("updateFocusInfo uri: " + uri);
+                if(strbody != null && strbody.length() > 8 && strbody.length() - 2 > 8){
+                    String jsonStr = strbody.substring(8,strbody.length() - 2);
+//                        logger.info("jsonStr: " + jsonStr);
+                    Gson gson = new Gson();
+                    FundHistoryDay fundHistoryDay = gson.fromJson(jsonStr,FundHistoryDay.class);
+                    try {
+                        long timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm").parse(fundHistoryDay.getGztime()).getTime();
+                        fundHistoryDay.setTimestamp(timeStamp/1000);
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                    }
+                    FundFocus focusService = new FundFocus(account,fundCode,
+                            fundHistoryDay.getName(),
+                            fundHistoryDay.getJzrq(),
+                            fundHistoryDay.getDwjz(),
+                            fundHistoryDay.getGsz(),
+                            fundHistoryDay.getGszzl(),
+                            fundHistoryDay.getGztime(),
+                            fundHistoryDay.getTimestamp());
+                    //查询本地是否有同一天的数据
+                    FundFocus focusLocal = fundFocusRepository.findFundFocusByAccountAndCode(account,fundCode);
+                    if(focusLocal != null){
+                        focusService.setId(focusLocal.getId());
+                    }
+                    fundFocusRepository.save(focusService);
+                    logger.info("focusService: " + focusService.toString());
+                }
+            }catch (Exception e){
+                System.out.println("error url : " + uri);
+                logger.warning("time getDetail error : " + e);
+                e.printStackTrace();
+                System.out.println("We got unexpected:" + e.getMessage());
+                continue;
+            }
+            logger.info("time updateFocusInfo end :" + (System.currentTimeMillis() - timeStart));
+        }
+        return "耗时：" + (System.currentTimeMillis() - timeStart) + "ms";
     }
 
 

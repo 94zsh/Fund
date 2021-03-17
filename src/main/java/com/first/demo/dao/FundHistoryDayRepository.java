@@ -8,5 +8,5 @@ public interface FundHistoryDayRepository extends JpaRepository<FundHistoryDay, 
 
     FundHistoryDay findByFundcode(String fundcode);
     FundHistoryDay findByJzrq(String jzrq);
-
+    FundHistoryDay findByFundcodeAndJzrq(String fundcode,String jzrq);
 }
