@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 public class FundController {
     @Autowired
     FundService fundService;
-    @RequestMapping(value = "/getData",method = RequestMethod.GET)
+    @RequestMapping(value = "/getData")
     public String getData(){
         String data = fundService.getData();
         return data;
