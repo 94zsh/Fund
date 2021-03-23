@@ -30,10 +30,7 @@ import javax.persistence.criteria.Root;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.logging.Logger;
 
 @Service
@@ -166,7 +163,7 @@ public class FundServiceImpl implements FundService {
                 logger.info("time getFundDetail start size : " + funds.size());
 
                 List<FundInvalid> fundInvalids = fundInvalidRepository.findAll();
-                for (int i = 0; i < /*100*/funds.size(); i++) {
+                for (int i = 0; i < /*10*/funds.size(); i++) {
                     System.out.println("getFundDetail current : " + i + " , total :" + funds.size() + " , process : " + ((float) i /funds.size()) * 100 + " %");
                     Fund fund = funds.get(i);
                     String fundCode = fund.getCode();
@@ -180,6 +177,7 @@ public class FundServiceImpl implements FundService {
                     }
                     if(!isViald){
                         //历史无效的请求 过滤掉
+                        logger.info("isViald  continue :" + i + "  , fundCode : " + fundCode);
                         continue;
                     }
                     String uri = "http://fundgz.1234567.com.cn/js/" + fundCode + ".js";
@@ -199,6 +197,7 @@ public class FundServiceImpl implements FundService {
 //                            logger.info("jsonStr: " + jsonStr);
                             Gson gson = new Gson();
                             FundHistoryDay fundHistoryDay = gson.fromJson(jsonStr,FundHistoryDay.class);
+                            logger.info("fundHistoryDay: " + fundHistoryDay.toString());
                             try {
                                 long timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm").parse(fundHistoryDay.getGztime()).getTime();
                                 fundHistoryDay.setTimestamp(timeStamp/1000);
@@ -208,18 +207,76 @@ public class FundServiceImpl implements FundService {
                             //查询本地是否有同一天的数据
 //                            FundHistoryDay localData = findSearch(fundHistoryDay.getFundcode(),fundHistoryDay.getJzrq());
                             FundHistoryDay localData = fundHistoryDayRepository.findByFundcodeAndJzrq(fundHistoryDay.getFundcode(),fundHistoryDay.getJzrq());
+                            //查询本地是否有前一天的数据
+                            SimpleDateFormat formatJzrq = new SimpleDateFormat("yyyy-MM-dd");
+                            long timeStampLast = formatJzrq.parse(fundHistoryDay.getJzrq()).getTime();
+                            Calendar calendar = Calendar.getInstance();
+                            calendar.setTimeInMillis(timeStampLast);
+                            int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
+                            System.out.println("timeStampLast : " + fundHistoryDay.getJzrq());
+                            System.out.println("dayOfWeek : " + dayOfWeek);
+                            if(dayOfWeek == 1){
+                                //星期天
+                                calendar.add(Calendar.DAY_OF_YEAR,-1);
+                            }else if(dayOfWeek == 2){
+                                //星期一
+                                calendar.add(Calendar.DAY_OF_YEAR,-3);
+                            }else if(dayOfWeek == 7){
+                                //星期六
+                                calendar.add(Calendar.DAY_OF_YEAR,-1);
+                            }else{
+                                calendar.add(Calendar.DAY_OF_YEAR,-1);
+                            }
+                            String lastDayJzrq = formatJzrq.format(calendar.getTime());
+                            System.out.println("lastDayJzrq : " + lastDayJzrq);
+                            FundHistoryDay localDataLast = fundHistoryDayRepository.findByFundcodeAndJzrq(fundHistoryDay.getFundcode(),lastDayJzrq);
+                            if(localDataLast != null){
+                                logger.info("localDataLast: " + localDataLast.toString());
+                                float currentZzl = Float.parseFloat(fundHistoryDay.getGszzl());
+                                float changeValue = localDataLast.getDayChangeValue();
+                                int change = localDataLast.getDayChange();//当前变化天数
+                                if(currentZzl > 0){
+                                    //今日增长了
+                                    if(change > 0){
+                                        //昨天也增长了
+                                        change += 1;
+                                        changeValue += currentZzl;
+                                    }else{
+                                        change = 1;
+                                        changeValue = currentZzl;
+                                    }
+                                }else if(currentZzl == 0){
+                                    //今日无变化
+                                }else{
+                                    //今日下降了
+                                    if(change > 0){
+                                        //昨天增长了
+                                        change = -1;
+                                        changeValue = currentZzl;
+                                    }else{
+                                        change += -1;
+                                        changeValue += currentZzl;
+                                    }
+                                }
+                                fundHistoryDay.setDayChange(change);
+                                fundHistoryDay.setDayChangeValue(changeValue);
+                            }else{
+                                logger.info("localDataLast is null " );
+                            }
+
+
                             if(localData != null){
                                 fundHistoryDay.setId(localData.getId());
+
                             }
                             fundHistoryDayRepository.save(fundHistoryDay);
-//                            logger.info("fundHistoryDay: " + fundHistoryDay.toString());
+
                         }
                     }catch (Exception e){
                         System.out.println("error url : " + uri);
                         logger.warning("time getDetail error : " + e);
-                        FundInvalid fundInvalid = new FundInvalid(fund.getCode(),fund.getCnName(), new SimpleDateFormat("yyyy-MM-dd HH:mm").format(new Date()));
-                        fundInvalidRepository.save(fundInvalid);
-//                    break;
+//                        FundInvalid fundInvalid = new FundInvalid(fund.getCode(),fund.getCnName(), new SimpleDateFormat("yyyy-MM-dd HH:mm").format(new Date()));
+//                        fundInvalidRepository.save(fundInvalid);
                     }
 
                 }
@@ -266,7 +323,7 @@ public class FundServiceImpl implements FundService {
                             fundHistoryDay.getGszzl(),
                             fundHistoryDay.getGztime(),
                             fundHistoryDay.getTimestamp());
-                    //查询本地是否有同一天的数据
+                    //查询本地是否有数据
                     FundFocus focusLocal = fundFocusRepository.findFundFocusByAccountAndCode(account,fundCode);
                     if(focusLocal != null){
                         focusService.setId(focusLocal.getId());
@@ -308,5 +365,4 @@ public class FundServiceImpl implements FundService {
 
         return fundHistoryDay.orElse(null);
     }
-
 }

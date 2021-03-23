@@ -17,6 +17,8 @@ public class FundFocus {
     String gszzl;
     String gztime;
     long timestamp;
+    int change;
+    String changeValue;
 
     public FundFocus() {
     }
@@ -125,6 +127,22 @@ public class FundFocus {
         this.timestamp = timestamp;
     }
 
+    public int getChange() {
+        return change;
+    }
+
+    public void setChange(int change) {
+        this.change = change;
+    }
+
+    public String getChangeValue() {
+        return changeValue;
+    }
+
+    public void setChangeValue(String changeValue) {
+        this.changeValue = changeValue;
+    }
+
     @Override
     public String toString() {
         return "FundFocus{" +
@@ -138,6 +156,8 @@ public class FundFocus {
                 ", gszzl='" + gszzl + '\'' +
                 ", gztime='" + gztime + '\'' +
                 ", timestamp=" + timestamp +
+                ", change=" + change +
+                ", changeValue='" + changeValue + '\'' +
                 '}';
     }
 }

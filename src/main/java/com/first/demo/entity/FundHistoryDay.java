@@ -16,6 +16,8 @@ public class FundHistoryDay {
     String gszzl;//估算涨跌百分比
     String gztime;//估值日期
     long timestamp;//更新时间
+    int dayChange = 0;//变化日期
+    Float dayChangeValue = 0f;//变化日期幅度
 
     public FundHistoryDay(Long id, String fundcode, String name, String jzrq, String dwjz, String gsz, String gszzl, String gztime, long timestamp) {
         this.id = id;
@@ -104,6 +106,22 @@ public class FundHistoryDay {
         this.timestamp = timestamp;
     }
 
+    public int getDayChange() {
+        return dayChange;
+    }
+
+    public void setDayChange(int dayChange) {
+        this.dayChange = dayChange;
+    }
+
+    public Float getDayChangeValue() {
+        return dayChangeValue;
+    }
+
+    public void setDayChangeValue(Float dayChangeValue) {
+        this.dayChangeValue = dayChangeValue;
+    }
+
     @Override
     public String toString() {
         return "FundHistoryDay{" +
@@ -116,6 +134,8 @@ public class FundHistoryDay {
                 ", gszzl='" + gszzl + '\'' +
                 ", gztime='" + gztime + '\'' +
                 ", timestamp=" + timestamp +
+                ", dayChange=" + dayChange +
+                ", dayChangeValue=" + dayChangeValue +
                 '}';
     }
 }
