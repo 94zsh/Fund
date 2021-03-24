@@ -17,8 +17,8 @@ public class FundFocus {
     String gszzl;
     String gztime;
     long timestamp;
-    int change;
-    String changeValue;
+    int dayChange = 0;//变化日期
+    Float dayChangeValue = 0f;//变化日期幅度
 
     public FundFocus() {
     }
@@ -35,7 +35,8 @@ public class FundFocus {
         this.gztime = gztime;
         this.timestamp = timestamp;
     }
-    public FundFocus(String account, String code, String name, String jzrq, String dwjz, String gsz, String gszzl, String gztime, long timestamp) {
+
+    public FundFocus(String account, String code, String name, String jzrq, String dwjz, String gsz, String gszzl, String gztime, long timestamp, int dayChange, Float dayChangeValue) {
         this.account = account;
         this.code = code;
         this.name = name;
@@ -45,6 +46,8 @@ public class FundFocus {
         this.gszzl = gszzl;
         this.gztime = gztime;
         this.timestamp = timestamp;
+        this.dayChange = dayChange;
+        this.dayChangeValue = dayChangeValue;
     }
 
     public Long getId() {
@@ -127,20 +130,20 @@ public class FundFocus {
         this.timestamp = timestamp;
     }
 
-    public int getChange() {
-        return change;
+    public int getDayChange() {
+        return dayChange;
     }
 
-    public void setChange(int change) {
-        this.change = change;
+    public void setDayChange(int dayChange) {
+        this.dayChange = dayChange;
     }
 
-    public String getChangeValue() {
-        return changeValue;
+    public Float getDayChangeValue() {
+        return dayChangeValue;
     }
 
-    public void setChangeValue(String changeValue) {
-        this.changeValue = changeValue;
+    public void setDayChangeValue(Float dayChangeValue) {
+        this.dayChangeValue = dayChangeValue;
     }
 
     @Override
@@ -156,8 +159,8 @@ public class FundFocus {
                 ", gszzl='" + gszzl + '\'' +
                 ", gztime='" + gztime + '\'' +
                 ", timestamp=" + timestamp +
-                ", change=" + change +
-                ", changeValue='" + changeValue + '\'' +
+                ", dayChange=" + dayChange +
+                ", dayChangeValue=" + dayChangeValue +
                 '}';
     }
 }

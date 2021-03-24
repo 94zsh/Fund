@@ -163,7 +163,7 @@ public class FundServiceImpl implements FundService {
                 logger.info("time getFundDetail start size : " + funds.size());
 
                 List<FundInvalid> fundInvalids = fundInvalidRepository.findAll();
-                for (int i = 0; i < /*10*/funds.size(); i++) {
+                for (int i = 0; i < /*30*/funds.size(); i++) {
                     System.out.println("getFundDetail current : " + i + " , total :" + funds.size() + " , process : " + ((float) i /funds.size()) * 100 + " %");
                     Fund fund = funds.get(i);
                     String fundCode = fund.getCode();
@@ -234,7 +234,20 @@ public class FundServiceImpl implements FundService {
                                 logger.info("localDataLast: " + localDataLast.toString());
                                 float currentZzl = Float.parseFloat(fundHistoryDay.getGszzl());
                                 float changeValue = localDataLast.getDayChangeValue();
+                                if(changeValue == 0){
+                                    //上一个数据没统计，以上个数据为起点统计
+                                    changeValue = Float.parseFloat(localDataLast.getGszzl());
+                                }
                                 int change = localDataLast.getDayChange();//当前变化天数
+                                if(change == 0){
+                                    //上一个数据没统计，以上个数据为起点统计
+                                    float lastChange = Float.parseFloat(localDataLast.getGszzl());
+                                    if(lastChange >= 0){
+                                        change = 1;
+                                    }else{
+                                        change = -1;
+                                    }
+                                }
                                 if(currentZzl > 0){
                                     //今日增长了
                                     if(change > 0){
@@ -322,7 +335,7 @@ public class FundServiceImpl implements FundService {
                             fundHistoryDay.getGsz(),
                             fundHistoryDay.getGszzl(),
                             fundHistoryDay.getGztime(),
-                            fundHistoryDay.getTimestamp());
+                            fundHistoryDay.getTimestamp(),0,0f);
                     //查询本地是否有数据
                     FundFocus focusLocal = fundFocusRepository.findFundFocusByAccountAndCode(account,fundCode);
                     if(focusLocal != null){
