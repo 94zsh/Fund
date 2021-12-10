@@ -9,4 +9,5 @@ public interface FundFocusRepository extends JpaRepository<FundFocus, String> {
 
     List<FundFocus>  findByAccount(String account);
     FundFocus  findFundFocusByAccountAndCode(String account,String code);
+    void deleteByAccountAndCode(String account,String code);
 }

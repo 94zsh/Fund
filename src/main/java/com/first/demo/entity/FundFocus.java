@@ -11,11 +11,11 @@ public class FundFocus {
     String account;
     String code;
     String name;
-    String jzrq;
-    String dwjz;
-    String gsz;
-    String gszzl;
-    String gztime;
+    String jzrq = "";
+    String dwjz = "";
+    String gsz = "";
+    String gszzl = "0";
+    String gztime = "";
     long timestamp;
     int dayChange = 0;//变化日期
     Float dayChangeValue = 0f;//变化日期幅度

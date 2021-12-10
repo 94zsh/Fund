@@ -142,7 +142,7 @@ public class FundServiceImpl implements FundService {
                 }
                 fundRepository.save(fund);
             }
-            logger.info("time getFundList end:" + (System.currentTimeMillis() - timeStart));
+            logger.info("time getFundList end:" + (System.currentTimeMillis() - timeStart) + " ms");
 
         } catch (JSONException e) {
             e.printStackTrace();
@@ -336,6 +336,79 @@ public class FundServiceImpl implements FundService {
                             fundHistoryDay.getGszzl(),
                             fundHistoryDay.getGztime(),
                             fundHistoryDay.getTimestamp(),0,0f);
+
+                    //
+                    //查询本地是否有前一天的数据
+                    SimpleDateFormat formatJzrq = new SimpleDateFormat("yyyy-MM-dd");
+                    long timeStampLast = formatJzrq.parse(fundHistoryDay.getJzrq()).getTime();
+                    Calendar calendar = Calendar.getInstance();
+                    calendar.setTimeInMillis(timeStampLast);
+                    int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
+                    System.out.println("timeStampLast : " + fundHistoryDay.getJzrq());
+                    System.out.println("dayOfWeek : " + dayOfWeek);
+                    if(dayOfWeek == 1){
+                        //星期天
+                        calendar.add(Calendar.DAY_OF_YEAR,-1);
+                    }else if(dayOfWeek == 2){
+                        //星期一
+                        calendar.add(Calendar.DAY_OF_YEAR,-3);
+                    }else if(dayOfWeek == 7){
+                        //星期六
+                        calendar.add(Calendar.DAY_OF_YEAR,-1);
+                    }else{
+                        calendar.add(Calendar.DAY_OF_YEAR,-1);
+                    }
+                    String lastDayJzrq = formatJzrq.format(calendar.getTime());
+                    System.out.println("lastDayJzrq : " + lastDayJzrq);
+                    FundHistoryDay localDataLast = fundHistoryDayRepository.findByFundcodeAndJzrq(fundHistoryDay.getFundcode(),lastDayJzrq);
+                    if(localDataLast != null){
+                        logger.info("localDataLast: " + localDataLast.toString());
+                        float currentZzl = Float.parseFloat(fundHistoryDay.getGszzl());
+                        float changeValue = localDataLast.getDayChangeValue();
+                        if(changeValue == 0){
+                            //上一个数据没统计，以上个数据为起点统计
+                            changeValue = Float.parseFloat(localDataLast.getGszzl());
+                        }
+                        int change = localDataLast.getDayChange();//当前变化天数
+                        if(change == 0){
+                            //上一个数据没统计，以上个数据为起点统计
+                            float lastChange = Float.parseFloat(localDataLast.getGszzl());
+                            if(lastChange >= 0){
+                                change = 1;
+                            }else{
+                                change = -1;
+                            }
+                        }
+                        if(currentZzl > 0){
+                            //今日增长了
+                            if(change > 0){
+                                //昨天也增长了
+                                change += 1;
+                                changeValue += currentZzl;
+                            }else{
+                                change = 1;
+                                changeValue = currentZzl;
+                            }
+                        }else if(currentZzl == 0){
+                            //今日无变化
+                        }else{
+                            //今日下降了
+                            if(change > 0){
+                                //昨天增长了
+                                change = -1;
+                                changeValue = currentZzl;
+                            }else{
+                                change += -1;
+                                changeValue += currentZzl;
+                            }
+                        }
+                        focusService.setDayChange(change);
+                        focusService.setDayChangeValue(changeValue);
+                    }else{
+                        logger.info("localDataLast is null " );
+                    }
+
+
                     //查询本地是否有数据
                     FundFocus focusLocal = fundFocusRepository.findFundFocusByAccountAndCode(account,fundCode);
                     if(focusLocal != null){
@@ -352,6 +425,133 @@ public class FundServiceImpl implements FundService {
                 continue;
             }
             logger.info("time updateFocusInfo end :" + (System.currentTimeMillis() - timeStart));
+        }
+        return "耗时：" + (System.currentTimeMillis() - timeStart) + "ms";
+    }
+
+    @Override
+    public String updateFocusInfo(String account, String code) {
+        List<FundFocus> fundFocus = fundFocusRepository.findByAccount(account);
+        long timeStart = System.currentTimeMillis();
+        System.out.println(account + " focus size  : " + fundFocus.size());
+        for (int i = 0; i < fundFocus.size(); i++) {
+            String fundCode = fundFocus.get(i).getCode();
+            if(!fundCode.equalsIgnoreCase(code)){
+                continue;
+            }
+            String uri = "http://fundgz.1234567.com.cn/js/" + fundCode + ".js";
+            try {
+                String strbody = restTemplate.exchange(uri, HttpMethod.GET, entity,String.class).getBody();
+                logger.info("updateFocusInfo uri: " + uri);
+                if(strbody != null && strbody.length() > 8 && strbody.length() - 2 > 8){
+                    String jsonStr = strbody.substring(8,strbody.length() - 2);
+//                        logger.info("jsonStr: " + jsonStr);
+                    Gson gson = new Gson();
+                    FundHistoryDay fundHistoryDay = gson.fromJson(jsonStr,FundHistoryDay.class);
+                    try {
+                        long timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm").parse(fundHistoryDay.getGztime()).getTime();
+                        fundHistoryDay.setTimestamp(timeStamp/1000);
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                    }
+                    FundFocus focusService = new FundFocus(account,fundCode,
+                            fundHistoryDay.getName(),
+                            fundHistoryDay.getJzrq(),
+                            fundHistoryDay.getDwjz(),
+                            fundHistoryDay.getGsz(),
+                            fundHistoryDay.getGszzl(),
+                            fundHistoryDay.getGztime(),
+                            fundHistoryDay.getTimestamp(),0,0f);
+
+                    //
+                    //查询本地是否有前一天的数据
+                    SimpleDateFormat formatJzrq = new SimpleDateFormat("yyyy-MM-dd");
+                    long timeStampLast = formatJzrq.parse(fundHistoryDay.getJzrq()).getTime();
+                    Calendar calendar = Calendar.getInstance();
+                    calendar.setTimeInMillis(timeStampLast);
+                    int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
+                    System.out.println("timeStampLast : " + fundHistoryDay.getJzrq());
+                    System.out.println("dayOfWeek : " + dayOfWeek);
+                    if(dayOfWeek == 1){
+                        //星期天
+                        calendar.add(Calendar.DAY_OF_YEAR,-1);
+                    }else if(dayOfWeek == 2){
+                        //星期一
+                        calendar.add(Calendar.DAY_OF_YEAR,-3);
+                    }else if(dayOfWeek == 7){
+                        //星期六
+                        calendar.add(Calendar.DAY_OF_YEAR,-1);
+                    }else{
+                        calendar.add(Calendar.DAY_OF_YEAR,-1);
+                    }
+                    String lastDayJzrq = formatJzrq.format(calendar.getTime());
+                    System.out.println("lastDayJzrq : " + lastDayJzrq);
+                    FundHistoryDay localDataLast = fundHistoryDayRepository.findByFundcodeAndJzrq(fundHistoryDay.getFundcode(),lastDayJzrq);
+                    if(localDataLast != null){
+                        logger.info("localDataLast: " + localDataLast.toString());
+                        float currentZzl = Float.parseFloat(fundHistoryDay.getGszzl());
+                        float changeValue = localDataLast.getDayChangeValue();
+                        if(changeValue == 0){
+                            //上一个数据没统计，以上个数据为起点统计
+                            changeValue = Float.parseFloat(localDataLast.getGszzl());
+                        }
+                        int change = localDataLast.getDayChange();//当前变化天数
+                        if(change == 0){
+                            //上一个数据没统计，以上个数据为起点统计
+                            float lastChange = Float.parseFloat(localDataLast.getGszzl());
+                            if(lastChange >= 0){
+                                change = 1;
+                            }else{
+                                change = -1;
+                            }
+                        }
+                        if(currentZzl > 0){
+                            //今日增长了
+                            if(change > 0){
+                                //昨天也增长了
+                                change += 1;
+                                changeValue += currentZzl;
+                            }else{
+                                change = 1;
+                                changeValue = currentZzl;
+                            }
+                        }else if(currentZzl == 0){
+                            //今日无变化
+                        }else{
+                            //今日下降了
+                            if(change > 0){
+                                //昨天增长了
+                                change = -1;
+                                changeValue = currentZzl;
+                            }else{
+                                change += -1;
+                                changeValue += currentZzl;
+                            }
+                        }
+                        focusService.setDayChange(change);
+                        focusService.setDayChangeValue(changeValue);
+                    }else{
+                        logger.info("localDataLast is null " );
+                    }
+
+
+                    //查询本地是否有数据
+                    FundFocus focusLocal = fundFocusRepository.findFundFocusByAccountAndCode(account,fundCode);
+                    if(focusLocal != null){
+                        focusService.setId(focusLocal.getId());
+                    }
+                    fundFocusRepository.save(focusService);
+                    logger.info("focusService: " + focusService.toString());
+                }
+            }catch (Exception e){
+                System.out.println("error url : " + uri);
+                logger.warning("time getDetail error : " + e);
+                e.printStackTrace();
+                System.out.println("We got unexpected:" + e.getMessage());
+                continue;
+            }
+            logger.info("time updateFocusInfo end :" + (System.currentTimeMillis() - timeStart));
+            break;
         }
         return "耗时：" + (System.currentTimeMillis() - timeStart) + "ms";
     }
